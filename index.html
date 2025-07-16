@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NDIS Value Mapping Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.5; }
+    h2 { color: #004080; }
+    .slider-container { margin-bottom: 30px; }
+    .output-box { border: 2px solid #ccc; padding: 20px; margin-top: 20px; border-radius: 8px; }
+    .high { background-color: #e6f7ff; }
+    .medium { background-color: #fff3cd; }
+    .low { background-color: #f8d7da; }
+    label { font-weight: bold; }
+    .tooltip { font-size: 0.9em; margin-top: 5px; color: #555; }
+    .summary-card { margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #f4f4f4; border-left: 6px solid #004080; }
+    button { background-color: #004080; color: white; border: none; padding: 10px 20px; font-size: 1em; cursor: pointer; border-radius: 5px; margin-right: 10px; }
+    button:hover { background-color: #003366; }
+  </style>
+</head>
+<body>
+
+  <h2>NDIS Non‑Direct Revenue Role Value Mapping</h2>
+
+  <label>Role Title:</label><br>
+  <input type="text" id="roleTitle" placeholder="e.g. Workforce Planner" style="width:100%;margin-bottom:20px;"><br>
+
+  <div class="slider-container">
+    <label>Value Creation (1–10):</label><br>
+    <input type="range" id="creationSlider" min="1" max="10" value="5" oninput="updateOutput()">
+    <div class="tooltip" id="creationTooltip"></div>
+  </div>
+
+  <div class="slider-container">
+    <label>Value Protection (1–10):</label><br>
+    <input type="range" id="protectionSlider" min="1" max="10" value="5" oninput="updateOutput()">
+    <div class="tooltip" id="protectionTooltip"></div>
+  </div>
+
+  <label>Avg Revenue per FTE ($):</label><br>
+  <input type="number" id="revenueFTE" placeholder="e.g. 170000" style="width:100%;margin-bottom:20px;"><br>
+
+  <label>Annual Role Cost ($):</label><br>
+  <input type="number" id="roleCost" placeholder="e.g. 125000" style="width:100%;margin-bottom:20px;"><br>
+
+  <button onclick="generateSummary()">Generate Summary</button>
+  <button id="downloadPdfBtn" style="display:none;" onclick="downloadPDF()">Download PDF</button>
+
+  <div id="resultBox" class="output-box"></div>
+
+  <script>
+    function getCreationTooltip(score) {
+      if (score>=9) return "📈 Serves 50+ participants or quality +20%+ or time –30%+";
+      if (score>=7) return "📊 Serves 25–49 participants or quality +10–19% or time –15–29%";
+      if (score>=5) return "🛠️ Serves 10–24 participants or enables new capability";
+      if (score>=3) return "👥 Indirect support or efficiency +10%+";
+      return "📁 Minimal participant impact; administrative";
+    }
+    function getProtectionTooltip(score) {
+      if (score>=9) return "🛡️ Prevents non‑compliance or risk –50%+ or exposure $500K+";
+      if (score>=7) return "✅ Audit readiness or risk –25–49% or exposure $200‑499K";
+      if (score>=5) return "🔧 Maintains quality or risk –10–24% or exposure $50‑199K";
+      if (score>=3) return "📋 Supports compliance or staff development";
+      return "🗂️ Minimal risk; routine tasks";
+    }
+    function getQuadrant(c,p) {
+      if(c>=7 && p>=7) return {label:"✅ Prioritise and Protect", style:"high"};
+      if(c>=7 && p<=6) return {label:"🚀 Amplify with Care", style:"medium"};
+      if(c<=6 && p>=7) return {label:"🛠️ Streamline but Monitor", style:"medium"};
+      return {label:"❌ Target for Reduction/Reinvention", style:"low"};
+    }
+    function updateOutput() {
+      const c=parseInt(document.getElementById("creationSlider").value);
+      const p=parseInt(document.getElementById("protectionSlider").value);
+      document.getElementById("creationTooltip").innerText=getCreationTooltip(c);
+      document.getElementById("protectionTooltip").innerText=getProtectionTooltip(p);
+    }
+    updateOutput();
+
+    function generateSummary() {
+      const c=parseInt(document.getElementById("creationSlider").value);
+      const p=parseInt(document.getElementById("protectionSlider").value);
+      const role=document.getElementById("roleTitle").value || "Unnamed Role";
+      const revenue=parseFloat(document.getElementById("revenueFTE").value);
+      const cost=parseFloat(document.getElementById("roleCost").value);
+      const quadrant=getQuadrant(c,p);
+      const costJustified=(revenue&&cost)?(cost<=revenue?"✅ Yes":"❌ No"):"⚠️ Not Evaluated";
+
+      document.getElementById("resultBox").innerHTML=`
+        <div class="summary-card ${quadrant.style}">
+          <h3>${role}</h3>
+          <strong>Value Creation:</strong> ${c} – ${getCreationTooltip(c)}<br>
+          <strong>Value Protection:</strong> ${p} – ${getProtectionTooltip(p)}<br>
+          <strong>Quadrant:</strong> ${quadrant.label}<br><br>
+          <strong>Avg Revenue/FTE:</strong> $${revenue||'—'}<br>
+          <strong>Role Cost:</strong> $${cost||'—'}<br>
+          <strong>Cost Justified?</strong> ${costJustified}
+        </div>`;
+      document.getElementById("downloadPdfBtn").style.display = 'inline-block';
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('resultBox');
+      html2pdf().from(element).save('NDIS-value-mapping.pdf');
+    }
+  </script>
+</body>
+</html>
